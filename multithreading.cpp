@@ -1,3 +1,6 @@
+// To run:
+// g++-9 multithreading.cpp -o prog
+// ./prog 80 20 400 5 8
 #include<iostream>
 #include<string>
 #include<fstream>
@@ -54,8 +57,7 @@ void num_sum(int startfile_pos, int startfile, int endfile_pos, int endfile, str
 		if(i==endfile) line_end = endfile_pos + 1;
 		else line_end = rand_num;
 
-		while(line_pos!=line_end)
-		{
+		while(line_pos!=line_end) {
 			string num;
 			getline(fs,num);
 			sum += stoi(num);
@@ -63,7 +65,7 @@ void num_sum(int startfile_pos, int startfile, int endfile_pos, int endfile, str
 		}
 	}
 	mtx.lock();
-	cout<<"pre "<<prefix<<" sp"<<startfile_pos<<" sf"<<startfile<<" efp"<<endfile_pos<<" ef"<<endfile<<" localsum :"<<sum<<endl;
+	//cout<<"pre "<<prefix<<" sp"<<startfile_pos<<" sf"<<startfile<<" efp"<<endfile_pos<<" ef"<<endfile<<" localsum :"<<sum<<endl;
 	global_sum += sum;
 	mtx.unlock();
 }
@@ -110,54 +112,12 @@ int main(int argc, char* argv[])
 		string prefix = "a_";
 		for(int i=0;i<a_threads;i++)
 		{
-
-			if(i == 0)
-			{
-				work_done += eqwork_a + residuework_a;
-				startfile_pos = 0;
-				startfile = 0;
-				if(work_done%rand_num!=0)
-				{
-					endfile = (work_done/rand_num);
-					endfile_pos = work_done - ( rand_num * (work_done/rand_num) ) - 1;
-				}
-				else
-				{
-					endfile = (work_done/rand_num) - 1;
-					endfile_pos = (work_done - 1)%rand_num;
-				}
-			}
-			else
-			{
-				work_done += eqwork_a;
-				if(residuework_a==0 && a_files!=1)
-				{
-					startfile = endfile + 1;
-					startfile_pos = 0;
-				}
-				else if (residuework_a==0 && a_files==1)
-				{
-					startfile = endfile;
-					startfile_pos = endfile_pos+1;					
-				}
-				else
-				{
-					startfile = endfile;
-					startfile_pos = endfile_pos + 1;
-				}
-				if(work_done%rand_num!=0)
-				{
-					endfile = (work_done/rand_num);
-					endfile_pos = work_done - ( rand_num * (work_done/rand_num) ) - 1;
-				}
-				else
-				{
-					endfile = (work_done/rand_num) - 1;
-					endfile_pos = (work_done - 1)%rand_num;
-				}
-			}
-
-			// setup
+			startfile_pos = work_done % rand_num;
+			startfile = work_done / rand_num;
+			if(i == 0) work_done += (eqwork_a + residuework_a);
+			else work_done += eqwork_a;
+			endfile_pos = (work_done - 1) % rand_num;
+			endfile = (work_done - 1) / rand_num;
 
 			parent_threads.push_back(thread(
 				num_sum,
@@ -181,7 +141,6 @@ int main(int argc, char* argv[])
 		cout << "parent sum: " << global_sum << endl;
 		cout<< "child sum: " << child_total_sum << endl;
 		cout << "total sum: " << global_sum + child_total_sum << endl; 
-		// PARENT SUM
 
 	}
 	else
@@ -199,56 +158,17 @@ int main(int argc, char* argv[])
 		int endfile_pos = -1;
 		int endfile = -1;
 		string prefix = "b_";
-			// setup
 
 		for(int i=0;i<b_threads;i++)
 		{
 
-			if(i == 0)
-			{
-				work_done += eqwork_b + residuework_b;
-				startfile_pos = 0;
-				startfile = 0;
-				if(work_done%rand_num!=0)
-				{
-					endfile = (work_done/rand_num);
-					endfile_pos = work_done - ( rand_num * (work_done/rand_num) ) - 1;
-				}
-				else
-				{
-					endfile = (work_done/rand_num) - 1;
-					endfile_pos = (work_done - 1)%rand_num;
-				}
-			}
-			else
-			{
-				work_done += eqwork_b;
-				if(residuework_b==0 && b_files!=1)
-				{
-					startfile = endfile + 1;
-					startfile_pos = 0;
-				}
-				else if(residuework_b==0 && b_files==1)
-				{
-					startfile = endfile;
-					startfile_pos = endfile_pos + 1;
-				}
-				else
-				{
-					startfile = endfile;
-					startfile_pos = endfile_pos + 1;
-				}
-				if(work_done%rand_num!=0)
-				{
-					endfile = (work_done/rand_num);
-					endfile_pos = work_done - ( rand_num * (work_done/rand_num) ) - 1;
-				}
-				else
-				{
-					endfile = (work_done/rand_num) - 1;
-					endfile_pos = (work_done - 1)%rand_num;
-				}
-			}
+			startfile_pos = work_done % rand_num;
+			startfile = work_done / rand_num;
+			if(i == 0) work_done += (eqwork_b + residuework_b);
+			else work_done += eqwork_b;
+			endfile_pos = (work_done - 1) % rand_num;
+			endfile = (work_done - 1) / rand_num;
+
 			
 			child_threads.push_back(thread(
 				num_sum,
@@ -260,15 +180,12 @@ int main(int argc, char* argv[])
 				rand_num
 			));
 		}
-		for(int i=0;i<b_threads;i++)
-		{
+		for(int i=0;i<b_threads;i++) {
 			child_threads[i].join();
 		}
-		//cout << "child sum: " << global_sum << endl;
 		close(pfds[0]);
 		write(pfds[1], &global_sum, sizeof(int));
 		close(pfds[1]);
-		// CHILD SUM
 	}
 	return 0;
 }
